@@ -8,12 +8,11 @@ use ReflectionFunction;
 
 function curry(callable $fn, ...$args): Closure {
     return function (...$partialArgs) use ($fn, $args) {
-        $args = array_merge($args, $partialArgs);
-        $numRequiredArgs = (new ReflectionFunction($fn))
-            ->getNumberOfRequiredParameters();
-        return count($args) < $numRequiredArgs
-            ? curry($fn, ...$args)
-            : $fn(...$args);
+        return (function ($args) use ($fn) {
+            return count($args) < (new ReflectionFunction($fn))->getNumberOfRequiredParameters()
+                ? curry($fn, ...$args)
+                : $fn(...$args);
+        })(array_merge($args, $partialArgs));
     };
 }
 
@@ -37,10 +36,10 @@ $filter = curry(function (callable $f, array $a): array {
 
 // foldl :: (a -> b -> a) -> a -> [b] -> a
 $foldl = curry(function (callable $f, $acc, $head, ...$tail) {
-    $list = count($tail) > 0
+    return array_reduce(count($tail) > 0
         ? array_merge([$head], $tail)
-        : $head;
-    return array_reduce($list, $f, $acc);
+        : $head,
+    $f, $acc);
 });
 
 // compose :: [a -> a] -> (a -> a)
